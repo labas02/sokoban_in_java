@@ -6,17 +6,20 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import javafx.scene.input.KeyEvent;
+
 import java.io.*;
 import java.util.HashMap;
 import java.util.Objects;
 
 public class HelloApplication extends Application {
+    HashMap<Integer, HashMap<Integer, displayed_object>> current_map;
+    player_position player_pos = new player_position();
+
     @Override
     public void start(Stage stage) {
         VBox root = new VBox();
@@ -25,7 +28,11 @@ public class HelloApplication extends Application {
         Button start = new Button("start");
         start.setOnMouseClicked(e -> {
             root.getChildren().removeAll();
-            root.getChildren().add(update_field((loadHashMapFromFile("map1.dat"))));
+            current_map = loadHashMapFromFile("map1.dat");
+            player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
+            player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
+            System.out.println(player_pos.pos_x + " " + player_pos.pos_y);
+            update_field(current_map, root);
         });
 
         Button generate_field = new Button("generate_field");
@@ -40,15 +47,18 @@ public class HelloApplication extends Application {
 
         Scene scene = new Scene(root, 320, 240);
         scene.addEventHandler(KeyEvent.KEY_PRESSED, key -> {
-            switch(key.getCode()){
+            switch (key.getCode()) {
                 case W:
-                    stage.close();
+                    move_player("w", root);
                     break;
                 case S:
+                    move_player("s", root);
                     break;
                 case A:
+                    move_player("a", root);
                     break;
                 case D:
+                    move_player("d", root);
                     break;
                 default:
             }
@@ -66,10 +76,10 @@ public class HelloApplication extends Application {
         // 0 = ground, 1 = point, 2 = box, 3 = player, 4 = wall
         int[][] layout = {
                 {4, 4, 4, 4, 4, 4, 4},   // Wall surrounding the map
-                {4, 0, 0, 1, 0, 0, 4},   // Ground with a point
-                {4, 2, 3, 0, 0, 0, 4},   // Box and player
-                {4, 0, 0, 0, 0, 0, 4},   // More ground
-                {4, 0, 0, 0, 0, 0, 4},   // More ground
+                {4, 0, 1, 0, 0, 0, 4},   // Ground with a point
+                {4, 0, 0, 0, 0, 0, 4},   // Box and player
+                {4, 0, 0, 3, 0, 0, 4},   // More ground
+                {4, 0, 2, 0, 0, 0, 4},   // More ground
                 {4, 0, 0, 0, 0, 0, 4},   // More ground
                 {4, 4, 4, 4, 4, 4, 4}    // Bottom wall
         };
@@ -85,14 +95,12 @@ public class HelloApplication extends Application {
             }
             map.put(x, row);
         }
-
         // Step 4: Return the populated map
         return map;
     }
 
-    public VBox update_field(HashMap<Integer, HashMap<Integer, displayed_object>> map) {
+    public void update_field(HashMap<Integer, HashMap<Integer, displayed_object>> map, VBox root) {
         VBox vbox = new VBox(); // VBox for stacking rows
-
         int maxRow = map.keySet().stream().max(Integer::compareTo).orElse(0);
         int maxCol = map.values().stream()
                 .flatMap(innerMap -> innerMap.keySet().stream())
@@ -121,11 +129,134 @@ public class HelloApplication extends Application {
             vbox.getChildren().add(hbox); // Add row to VBox
         }
 
-        return vbox;
+        root.getChildren().clear();
+        root.getChildren().addAll(vbox);
+    }
+
+    public void move_player(String way, VBox root) {
+        System.out.println(current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object);
+        switch (way) {
+            case "w":
+                switch (current_map.get(player_pos.pos_x - 1).get(player_pos.pos_y).which_object) {
+                    case 0:
+                        swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x - 1, player_pos.pos_y);
+                        break;
+                    case 2:
+                        if (current_map.get(player_pos.pos_x - 1).get(player_pos.pos_y).isMovable()) {
+                            return;
+                        }
+                        if (current_map.get(player_pos.pos_x - 2).get(player_pos.pos_y).which_object == 0) {
+
+                            swapTiles(player_pos.pos_x - 1, player_pos.pos_y, player_pos.pos_x - 2, player_pos.pos_y);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x - 1, player_pos.pos_y);
+                        }
+                        else if (current_map.get(player_pos.pos_x - 2).get(player_pos.pos_y).which_object == 1) {
+                            swapTiles(player_pos.pos_x - 1, player_pos.pos_y, player_pos.pos_x - 2, player_pos.pos_y);
+                            current_map.get(player_pos.pos_x - 2).get(player_pos.pos_y).setMovable(false);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x - 1, player_pos.pos_y);
+                            current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object = 0;
+                        } else {
+                            player_pos.pos_x++;
+                        }
+                        break;
+                    case 4, 1:
+                        player_pos.pos_x++;
+                        break;
+                }
+                player_pos.pos_x--;
+                break;
+            case "s":
+                switch (current_map.get(player_pos.pos_x + 1).get(player_pos.pos_y).which_object) {
+                    case 0:
+                        swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x + 1, player_pos.pos_y);
+                        break;
+                    case 2:
+                        if (current_map.get(player_pos.pos_x + 1).get(player_pos.pos_y).isMovable()) {
+                            return;
+                        }
+                        if (current_map.get(player_pos.pos_x + 2).get(player_pos.pos_y).which_object == 0) {
+
+                            swapTiles(player_pos.pos_x + 1, player_pos.pos_y, player_pos.pos_x + 2, player_pos.pos_y);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x + 1, player_pos.pos_y);
+                        }
+                        else if (current_map.get(player_pos.pos_x + 2).get(player_pos.pos_y).which_object == 1) {
+                            swapTiles(player_pos.pos_x + 1, player_pos.pos_y, player_pos.pos_x + 2, player_pos.pos_y);
+                            current_map.get(player_pos.pos_x + 2).get(player_pos.pos_y).setMovable(false);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x + 1, player_pos.pos_y);
+                            current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object = 0;
+                        } else {
+                            player_pos.pos_x--;
+                        }
+                        break;
+                    case 4, 1:
+                        player_pos.pos_x--;
+                        break;
+                }
+                player_pos.pos_x++;
+                break;
+            case "a":
+                switch (current_map.get(player_pos.pos_x).get(player_pos.pos_y-1).which_object) {
+                    case 0:
+                        swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x , player_pos.pos_y-1);
+                        break;
+                    case 2:
+                        if (current_map.get(player_pos.pos_x ).get(player_pos.pos_y-1).isMovable()) {
+                            return;
+                        }
+                        if (current_map.get(player_pos.pos_x).get(player_pos.pos_y-2).which_object == 0) {
+
+                            swapTiles(player_pos.pos_x, player_pos.pos_y-1, player_pos.pos_x, player_pos.pos_y-2);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x , player_pos.pos_y-1);
+                        }
+                        else if (current_map.get(player_pos.pos_x).get(player_pos.pos_y-2).which_object == 1) {
+                            swapTiles(player_pos.pos_x , player_pos.pos_y-1, player_pos.pos_x, player_pos.pos_y-2);
+                            current_map.get(player_pos.pos_x).get(player_pos.pos_y-2).setMovable(false);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x, player_pos.pos_y-1);
+                            current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object = 0;
+                        } else {
+                            player_pos.pos_y++;
+                        }
+                        break;
+                    case 4, 1:
+                        player_pos.pos_y++;
+                        break;
+                }
+                player_pos.pos_y--;
+                break;
+            case "d":
+                switch (current_map.get(player_pos.pos_x).get(player_pos.pos_y+1).which_object) {
+                    case 0:
+                        swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x , player_pos.pos_y+1);
+                        break;
+                    case 2:
+                        if (current_map.get(player_pos.pos_x ).get(player_pos.pos_y+1).isMovable()) {
+                            return;
+                        }
+                        if (current_map.get(player_pos.pos_x).get(player_pos.pos_y+2).which_object == 0) {
+
+                            swapTiles(player_pos.pos_x, player_pos.pos_y+1, player_pos.pos_x, player_pos.pos_y+2);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x , player_pos.pos_y+1);
+                        }
+                        else if (current_map.get(player_pos.pos_x).get(player_pos.pos_y+2).which_object == 1) {
+                            swapTiles(player_pos.pos_x , player_pos.pos_y+1, player_pos.pos_x, player_pos.pos_y+2);
+                            current_map.get(player_pos.pos_x).get(player_pos.pos_y+2).setMovable(false);
+                            swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x, player_pos.pos_y+1);
+                            current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object = 0;
+                        } else {
+                            player_pos.pos_y--;
+                        }
+                        break;
+                    case 4, 1:
+                        player_pos.pos_y--;
+                        break;
+                }
+                player_pos.pos_y++;
+                break;
+        }
+        update_field(current_map, root);
     }
 
     public ImageView object_image(int which_object) {
-        System.out.println(which_object);
         ImageView img = new ImageView();
         switch (which_object) {
             case 0:
@@ -213,8 +344,34 @@ public class HelloApplication extends Application {
         }
     }
 
+    public void swapTiles(
+            int row1, int col1, int row2, int col2) {
+
+        // Check if both tiles exist in the map
+        if (current_map.containsKey(row1) && current_map.get(row1).containsKey(col1)
+                && current_map.containsKey(row2) && current_map.get(row2).containsKey(col2)) {
+
+            // Get the objects from the specified positions
+            displayed_object obj1 = current_map.get(row1).get(col1);
+            displayed_object obj2 = current_map.get(row2).get(col2);
+
+            // Swap the objects
+            current_map.get(row1).put(col1, obj2);
+            current_map.get(row2).put(col2, obj1);
+
+            System.out.println("Swapped (" + row1 + ", " + col1 + ") with (" + row2 + ", " + col2 + ")");
+        } else {
+            System.out.println("One or both tiles do not exist. Swap failed.");
+        }
+    }
+
 
     public static void main(String[] args) {
         launch();
     }
+}
+
+class player_position {
+    public int pos_x;
+    public int pos_y;
 }
