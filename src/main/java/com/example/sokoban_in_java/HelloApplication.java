@@ -27,6 +27,23 @@ public class HelloApplication extends Application {
 
         Button start = new Button("start");
         start.setOnMouseClicked(e -> {
+            for (int i = 1; i < 10; i++) {
+                Button select_level = new Button("level:"+i);
+                int finalI = i;
+                select_level.setOnMouseClicked(v -> {
+                    root.getChildren().removeAll();
+                    current_map = loadHashMapFromFile("map"+finalI+".dat");
+                    player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
+                    player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
+                    System.out.println(player_pos.pos_x + " " + player_pos.pos_y);
+                    update_field(current_map, root);
+                });
+                root.getChildren().add(select_level);
+            }
+        });
+
+        Button select_level = new Button("start");
+        select_level.setOnMouseClicked(e -> {
             root.getChildren().removeAll();
             current_map = loadHashMapFromFile("map1.dat");
             player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
@@ -72,14 +89,30 @@ public class HelloApplication extends Application {
         HashMap<Integer, HashMap<Integer, displayed_object>> map = new HashMap<>();
         // 0 = ground, 1 = point, 2 = box, 3 = player, 4 = wall
         int[][] layout = {
-                {4, 4, 4, 4, 4, 4, 4},
-                {4, 0, 1, 0, 0, 0, 4},
-                {4, 0, 0, 0, 0, 0, 4},
-                {4, 0, 0, 3, 0, 0, 4},
-                {4, 0, 2, 0, 0, 0, 4},
-                {4, 0, 0, 0, 0, 0, 4},
-                {4, 4, 4, 4, 4, 4, 4}
+                {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
+                {4, 0, 0, 0, 4, 0, 0, 1, 1, 1, 1, 0, 0, 4, 0, 0, 0, 0, 4},
+                {4, 0, 2, 0, 4, 0, 4, 4, 0, 0, 4, 4, 2, 4, 0, 2, 0, 0, 4},
+                {4, 0, 0, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 4},
+                {4, 4, 4, 0, 4, 0, 4, 0, 4, 4, 4, 0, 4, 4, 4, 0, 4, 4, 4},
+                {4, 0, 0, 0, 0, 0, 4, 0, 4, 3, 4, 0, 4, 0, 0, 0, 0, 0, 4},
+                {4, 2, 0, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4},
+                {4, 0, 0, 0, 4, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0, 0, 2, 0, 4},
+                {4, 4, 4, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4},
+                {4, 0, 0, 0, 4, 0, 0, 1, 1, 3, 1, 1, 0, 4, 0, 0, 0, 0, 4},
+                {4, 0, 2, 0, 4, 0, 4, 4, 4, 4, 4, 4, 2, 4, 0, 2, 0, 0, 4},
+                {4, 0, 0, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 4},
+                {4, 4, 4, 0, 4, 0, 4, 0, 4, 4, 4, 0, 4, 4, 4, 0, 4, 4, 4},
+                {4, 0, 0, 0, 0, 0, 4, 0, 4, 3, 4, 0, 4, 0, 0, 0, 0, 0, 4},
+                {4, 2, 0, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4},
+                {4, 0, 0, 0, 4, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0, 0, 2, 0, 4},
+                {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}
         };
+
+
+
+
+
+
 
         for (int x = 0; x < layout.length; x++) {
             HashMap<Integer, displayed_object> row = new HashMap<>();
