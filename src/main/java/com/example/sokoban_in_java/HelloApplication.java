@@ -11,32 +11,43 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import javafx.scene.input.KeyEvent;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 
 public class HelloApplication extends Application {
     HashMap<Integer, HashMap<Integer, displayed_object>> current_map;
     player_position player_pos = new player_position();
+    List<Level> levels;
+    int current_map_num;
+    int boxes_set;
 
     @Override
     public void start(Stage stage) {
         VBox root = new VBox();
         root.setAlignment(Pos.CENTER);
-
+        levels = parseXML("levels.xml");
         Button start = new Button("start");
         start.setOnMouseClicked(e -> {
             for (int i = 1; i < 10; i++) {
                 Button select_level = new Button("level:"+i);
                 int finalI = i;
                 select_level.setOnMouseClicked(v -> {
+                    current_map_num = finalI;
                     root.getChildren().removeAll();
                     current_map = loadHashMapFromFile("map"+finalI+".dat");
                     player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
                     player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
-                    System.out.println(player_pos.pos_x + " " + player_pos.pos_y);
-                    update_field(current_map, root);
+                    update_field(current_map, root,stage);
                 });
                 root.getChildren().add(select_level);
             }
@@ -48,39 +59,43 @@ public class HelloApplication extends Application {
             current_map = loadHashMapFromFile("map1.dat");
             player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
             player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
-            System.out.println(player_pos.pos_x + " " + player_pos.pos_y);
-            update_field(current_map, root);
+            update_field(current_map, root,stage);
         });
 
         Button generate_field = new Button("generate_field");
         generate_field.setOnMouseClicked(e -> {
             HashMap map = create_map();
             printMapAsNestedArray(map);
-            saveHashMapToFile(map, "map1.dat");
+            saveHashMapToFile(map, "map4"+".dat");
         });
 
         root.getChildren().addAll(start, generate_field);
 
 
-        Scene scene = new Scene(root, 800, 800);
+        Scene scene = new Scene(root);
         scene.addEventHandler(KeyEvent.KEY_PRESSED, key -> {
             switch (key.getCode()) {
                 case W:
-                    move_player("w", root);
+                    move_player("w", root,stage);
                     break;
                 case S:
-                    move_player("s", root);
+                    move_player("s", root,stage);
                     break;
                 case A:
-                    move_player("a", root);
+                    move_player("a", root,stage);
                     break;
                 case D:
-                    move_player("d", root);
+                    move_player("d", root,stage);
+                    break;
+                case R:
+                    current_map_num--;
+                    next_level(root,stage);
                     break;
                 default:
             }
         });
         stage.setTitle("Hello!");
+        stage.setResizable(false);
         stage.setScene(scene);
         stage.show();
     }
@@ -89,29 +104,14 @@ public class HelloApplication extends Application {
         HashMap<Integer, HashMap<Integer, displayed_object>> map = new HashMap<>();
         // 0 = ground, 1 = point, 2 = box, 3 = player, 4 = wall
         int[][] layout = {
-                {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
-                {4, 0, 0, 0, 4, 0, 0, 1, 1, 1, 1, 0, 0, 4, 0, 0, 0, 0, 4},
-                {4, 0, 2, 0, 4, 0, 4, 4, 0, 0, 4, 4, 2, 4, 0, 2, 0, 0, 4},
-                {4, 0, 0, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 4},
-                {4, 4, 4, 0, 4, 0, 4, 0, 4, 4, 4, 0, 4, 4, 4, 0, 4, 4, 4},
-                {4, 0, 0, 0, 0, 0, 4, 0, 4, 3, 4, 0, 4, 0, 0, 0, 0, 0, 4},
-                {4, 2, 0, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4},
-                {4, 0, 0, 0, 4, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0, 0, 2, 0, 4},
-                {4, 4, 4, 0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4},
-                {4, 0, 0, 0, 4, 0, 0, 1, 1, 3, 1, 1, 0, 4, 0, 0, 0, 0, 4},
-                {4, 0, 2, 0, 4, 0, 4, 4, 4, 4, 4, 4, 2, 4, 0, 2, 0, 0, 4},
-                {4, 0, 0, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 4},
-                {4, 4, 4, 0, 4, 0, 4, 0, 4, 4, 4, 0, 4, 4, 4, 0, 4, 4, 4},
-                {4, 0, 0, 0, 0, 0, 4, 0, 4, 3, 4, 0, 4, 0, 0, 0, 0, 0, 4},
-                {4, 2, 0, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4, 0, 4, 4, 4, 0, 4},
-                {4, 0, 0, 0, 4, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0, 0, 2, 0, 4},
-                {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4}
+                {4,4,4,4,4,4,4,4,4,4,4},
+                {4,0,0,0,0,0,0,0,0,0,4},
+                {4,0,0,0,0,0,2,0,0,0,4},
+                {4,0,0,0,0,3,0,1,0,0,4},
+                {4,0,0,0,0,0,2,0,0,0,4},
+                {4,1,0,0,0,0,0,0,0,0,4},
+                {4,4,4,4,4,4,4,4,4,4,4}
         };
-
-
-
-
-
 
 
         for (int x = 0; x < layout.length; x++) {
@@ -126,14 +126,14 @@ public class HelloApplication extends Application {
         return map;
     }
 
-    public void update_field(HashMap<Integer, HashMap<Integer, displayed_object>> map, VBox root) {
+    public void update_field(HashMap<Integer, HashMap<Integer, displayed_object>> map, VBox root,Stage stage) {
         VBox vbox = new VBox();
         int maxRow = map.keySet().stream().max(Integer::compareTo).orElse(0);
         int maxCol = map.values().stream()
                 .flatMap(innerMap -> innerMap.keySet().stream())
                 .max(Integer::compareTo)
                 .orElse(0);
-
+        root.setPrefSize(64,64);
         for (int i = 0; i <= maxRow; i++) {
             HBox hbox = new HBox();
             for (int j = 0; j <= maxCol; j++) {
@@ -158,8 +158,7 @@ public class HelloApplication extends Application {
         root.getChildren().addAll(vbox);
     }
 
-    public void move_player(String way, VBox root) {
-        System.out.println(current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object);
+    public void move_player(String way, VBox root,Stage stage) {
         // 0 = ground, 1 = point, 2 = box, 3 = player, 4 = wall
         switch (way) {
             case "w":
@@ -177,6 +176,12 @@ public class HelloApplication extends Application {
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x - 1, player_pos.pos_y);
                         }
                         else if (current_map.get(player_pos.pos_x - 2).get(player_pos.pos_y).which_object == 1) {
+                            boxes_set++;
+                            System.out.println(boxes_set);
+                            System.out.println(levels.get(current_map_num).boxes);
+                            if (boxes_set >= levels.get(current_map_num-1).boxes){
+                               next_level(root,stage);
+                            }
                             swapTiles(player_pos.pos_x - 1, player_pos.pos_y, player_pos.pos_x - 2, player_pos.pos_y);
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x - 1, player_pos.pos_y);
                             current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object = 0;
@@ -206,6 +211,13 @@ public class HelloApplication extends Application {
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x + 1, player_pos.pos_y);
                         }
                         else if (current_map.get(player_pos.pos_x + 2).get(player_pos.pos_y).which_object == 1) {
+                            boxes_set++;
+                            System.out.println(boxes_set);
+                            System.out.println(levels.get(current_map_num).boxes);
+                            if (boxes_set == levels.get(current_map_num-1).boxes){
+                                next_level(root,stage);
+                            }
+
                             swapTiles(player_pos.pos_x + 1, player_pos.pos_y, player_pos.pos_x + 2, player_pos.pos_y);
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x + 1, player_pos.pos_y);
                             current_map.get(player_pos.pos_x).get(player_pos.pos_y).which_object = 0;
@@ -235,6 +247,13 @@ public class HelloApplication extends Application {
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x , player_pos.pos_y-1);
                         }
                         else if (current_map.get(player_pos.pos_x).get(player_pos.pos_y-2).which_object == 1) {
+                            boxes_set++;
+                            System.out.println(boxes_set);
+                            System.out.println(levels.get(current_map_num).boxes);
+                            if (boxes_set == levels.get(current_map_num-1).boxes){
+                                next_level(root,stage);
+
+                            }
                             swapTiles(player_pos.pos_x , player_pos.pos_y-1, player_pos.pos_x, player_pos.pos_y-2);
                             current_map.get(player_pos.pos_x).get(player_pos.pos_y-2).setMovable(false);
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x, player_pos.pos_y-1);
@@ -264,6 +283,13 @@ public class HelloApplication extends Application {
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x , player_pos.pos_y+1);
                         }
                         else if (current_map.get(player_pos.pos_x).get(player_pos.pos_y+2).which_object == 1) {
+                            boxes_set++;
+                            System.out.println(boxes_set);
+                            System.out.println(levels.get(current_map_num).boxes);
+                            if (boxes_set == levels.get(current_map_num-1).boxes){
+                                next_level(root,stage);
+
+                            }
                             swapTiles(player_pos.pos_x , player_pos.pos_y+1, player_pos.pos_x, player_pos.pos_y+2);
                             current_map.get(player_pos.pos_x).get(player_pos.pos_y+2).setMovable(false);
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x, player_pos.pos_y+1);
@@ -279,7 +305,7 @@ public class HelloApplication extends Application {
                 player_pos.pos_y++;
                 break;
         }
-        update_field(current_map, root);
+        update_field(current_map, root, stage);
     }
 
     public ImageView object_image(int which_object) {
@@ -307,6 +333,17 @@ public class HelloApplication extends Application {
         return img;
     }
 
+    public void next_level(VBox root,Stage stage){
+        current_map_num++;
+        boxes_set = 0;
+        root.getChildren().removeAll();
+        current_map = loadHashMapFromFile("map"+current_map_num+".dat");
+        player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
+        player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
+        assert current_map != null;
+        update_field(current_map,root, stage);
+    }
+
     public static void saveHashMapToFile(HashMap<Integer, HashMap<Integer, displayed_object>> hashMap, String fileName) {
         try {
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -330,7 +367,6 @@ public class HelloApplication extends Application {
             FileInputStream fileInputStream = new FileInputStream(fileName);
             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
 
-            // Deserialize the HashMap
             HashMap<Integer, HashMap<Integer, displayed_object>> deserializedMap =
                     (HashMap<Integer, HashMap<Integer, displayed_object>>) objectInputStream.readObject();
 
@@ -341,6 +377,31 @@ public class HelloApplication extends Application {
             e.printStackTrace();
             return null;
         }
+    }
+
+    public static List<Level> parseXML(String xmlFilePath) {
+        List<Level> levels = new ArrayList<>();
+        try {
+            File file = new File(xmlFilePath);
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(file);
+            doc.getDocumentElement().normalize();
+
+            NodeList levelNodes = doc.getElementsByTagName("level");
+            for (int i = 0; i < levelNodes.getLength(); i++) {
+                Node node = levelNodes.item(i);
+                if (node.getNodeType() == Node.ELEMENT_NODE) {
+                    Element element = (Element) node;
+                    int number = Integer.parseInt(element.getElementsByTagName("number").item(0).getTextContent());
+                    int boxes = Integer.parseInt(element.getElementsByTagName("boxes").item(0).getTextContent());
+                    levels.add(new Level(number, boxes));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return levels;
     }
 
     public void printMapAsNestedArray(HashMap<Integer, HashMap<Integer, displayed_object>> map) {
@@ -375,7 +436,6 @@ public class HelloApplication extends Application {
             current_map.get(row1).put(col1, obj2);
             current_map.get(row2).put(col2, obj1);
 
-            System.out.println("Swapped (" + row1 + ", " + col1 + ") with (" + row2 + ", " + col2 + ")");
         } else {
             System.out.println("One or both tiles do not exist. Swap failed.");
         }
@@ -390,4 +450,18 @@ public class HelloApplication extends Application {
 class player_position {
     public int pos_x;
     public int pos_y;
+}
+class Level {
+    int number;
+    int boxes;
+
+    public Level(int number, int boxes) {
+        this.number = number;
+        this.boxes = boxes;
+    }
+
+    @Override
+    public String toString() {
+        return "Level " + number + ": " + boxes + " boxes";
+    }
 }
