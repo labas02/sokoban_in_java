@@ -35,9 +35,14 @@ public class HelloApplication extends Application {
     public void start(Stage stage) {
         VBox root = new VBox();
         root.setAlignment(Pos.CENTER);
+        Scene scene = new Scene(root);
         levels = parseXML("levels.xml");
         Button start = new Button("start");
+
         start.setOnMouseClicked(e -> {
+            scene.getWindow().setWidth(200);
+            scene.getWindow().setHeight(300);
+
             for (int i = 1; i < 10; i++) {
                 Button select_level = new Button("level:"+i);
                 int finalI = i;
@@ -47,7 +52,7 @@ public class HelloApplication extends Application {
                     current_map = loadHashMapFromFile("map"+finalI+".dat");
                     player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
                     player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
-                    update_field(current_map, root,stage);
+                    update_field(current_map, root,scene);
                 });
                 root.getChildren().add(select_level);
             }
@@ -59,7 +64,7 @@ public class HelloApplication extends Application {
             current_map = loadHashMapFromFile("map1.dat");
             player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
             player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
-            update_field(current_map, root,stage);
+            update_field(current_map, root,scene);
         });
 
         Button generate_field = new Button("generate_field");
@@ -72,30 +77,28 @@ public class HelloApplication extends Application {
         root.getChildren().addAll(start, generate_field);
 
 
-        Scene scene = new Scene(root);
         scene.addEventHandler(KeyEvent.KEY_PRESSED, key -> {
             switch (key.getCode()) {
                 case W:
-                    move_player("w", root,stage);
+                    move_player("w", root,scene);
                     break;
                 case S:
-                    move_player("s", root,stage);
+                    move_player("s", root,scene);
                     break;
                 case A:
-                    move_player("a", root,stage);
+                    move_player("a", root,scene);
                     break;
                 case D:
-                    move_player("d", root,stage);
+                    move_player("d", root,scene);
                     break;
                 case R:
                     current_map_num--;
-                    next_level(root,stage);
+                    next_level(root,scene);
                     break;
                 default:
             }
         });
         stage.setTitle("Hello!");
-        stage.setResizable(false);
         stage.setScene(scene);
         stage.show();
     }
@@ -126,14 +129,16 @@ public class HelloApplication extends Application {
         return map;
     }
 
-    public void update_field(HashMap<Integer, HashMap<Integer, displayed_object>> map, VBox root,Stage stage) {
+    public void update_field(HashMap<Integer, HashMap<Integer, displayed_object>> map, VBox root,Scene scene) {
         VBox vbox = new VBox();
         int maxRow = map.keySet().stream().max(Integer::compareTo).orElse(0);
         int maxCol = map.values().stream()
                 .flatMap(innerMap -> innerMap.keySet().stream())
                 .max(Integer::compareTo)
                 .orElse(0);
-        root.setPrefSize(64,64);
+        scene.getWindow().setHeight(64*maxRow);
+        scene.getWindow().setWidth(64*maxCol);
+
         for (int i = 0; i <= maxRow; i++) {
             HBox hbox = new HBox();
             for (int j = 0; j <= maxCol; j++) {
@@ -158,7 +163,7 @@ public class HelloApplication extends Application {
         root.getChildren().addAll(vbox);
     }
 
-    public void move_player(String way, VBox root,Stage stage) {
+    public void move_player(String way, VBox root,Scene scene) {
         // 0 = ground, 1 = point, 2 = box, 3 = player, 4 = wall
         switch (way) {
             case "w":
@@ -180,7 +185,7 @@ public class HelloApplication extends Application {
                             System.out.println(boxes_set);
                             System.out.println(levels.get(current_map_num).boxes);
                             if (boxes_set >= levels.get(current_map_num-1).boxes){
-                               next_level(root,stage);
+                               next_level(root,scene);
                             }
                             swapTiles(player_pos.pos_x - 1, player_pos.pos_y, player_pos.pos_x - 2, player_pos.pos_y);
                             swapTiles(player_pos.pos_x, player_pos.pos_y, player_pos.pos_x - 1, player_pos.pos_y);
@@ -215,7 +220,7 @@ public class HelloApplication extends Application {
                             System.out.println(boxes_set);
                             System.out.println(levels.get(current_map_num).boxes);
                             if (boxes_set == levels.get(current_map_num-1).boxes){
-                                next_level(root,stage);
+                                next_level(root,scene);
                             }
 
                             swapTiles(player_pos.pos_x + 1, player_pos.pos_y, player_pos.pos_x + 2, player_pos.pos_y);
@@ -251,7 +256,7 @@ public class HelloApplication extends Application {
                             System.out.println(boxes_set);
                             System.out.println(levels.get(current_map_num).boxes);
                             if (boxes_set == levels.get(current_map_num-1).boxes){
-                                next_level(root,stage);
+                                next_level(root,scene);
 
                             }
                             swapTiles(player_pos.pos_x , player_pos.pos_y-1, player_pos.pos_x, player_pos.pos_y-2);
@@ -287,7 +292,7 @@ public class HelloApplication extends Application {
                             System.out.println(boxes_set);
                             System.out.println(levels.get(current_map_num).boxes);
                             if (boxes_set == levels.get(current_map_num-1).boxes){
-                                next_level(root,stage);
+                                next_level(root,scene);
 
                             }
                             swapTiles(player_pos.pos_x , player_pos.pos_y+1, player_pos.pos_x, player_pos.pos_y+2);
@@ -305,7 +310,7 @@ public class HelloApplication extends Application {
                 player_pos.pos_y++;
                 break;
         }
-        update_field(current_map, root, stage);
+        update_field(current_map, root, scene);
     }
 
     public ImageView object_image(int which_object) {
@@ -333,7 +338,7 @@ public class HelloApplication extends Application {
         return img;
     }
 
-    public void next_level(VBox root,Stage stage){
+    public void next_level(VBox root,Scene scene){
         current_map_num++;
         boxes_set = 0;
         root.getChildren().removeAll();
@@ -341,7 +346,7 @@ public class HelloApplication extends Application {
         player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
         player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
         assert current_map != null;
-        update_field(current_map,root, stage);
+        update_field(current_map,root, scene);
     }
 
     public static void saveHashMapToFile(HashMap<Integer, HashMap<Integer, displayed_object>> hashMap, String fileName) {
