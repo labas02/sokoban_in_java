@@ -4,10 +4,12 @@ import javafx.application.Application;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.TextArea;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 import javafx.scene.input.KeyEvent;
@@ -43,7 +45,7 @@ public class HelloApplication extends Application {
             scene.getWindow().setWidth(200);
             scene.getWindow().setHeight(300);
 
-            for (int i = 1; i < 10; i++) {
+            for (int i = 1; i < 5; i++) {
                 Button select_level = new Button("level:"+i);
                 int finalI = i;
                 select_level.setOnMouseClicked(v -> {
@@ -74,7 +76,7 @@ public class HelloApplication extends Application {
             saveHashMapToFile(map, "map4"+".dat");
         });
 
-        root.getChildren().addAll(start, generate_field);
+        root.getChildren().addAll(start);
 
 
         scene.addEventHandler(KeyEvent.KEY_PRESSED, key -> {
@@ -161,6 +163,10 @@ public class HelloApplication extends Application {
 
         root.getChildren().clear();
         root.getChildren().addAll(vbox);
+    }
+
+    public void end_screen(){
+
     }
 
     public void move_player(String way, VBox root,Scene scene) {
@@ -340,13 +346,21 @@ public class HelloApplication extends Application {
 
     public void next_level(VBox root,Scene scene){
         current_map_num++;
-        boxes_set = 0;
-        root.getChildren().removeAll();
-        current_map = loadHashMapFromFile("map"+current_map_num+".dat");
-        player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
-        player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
-        assert current_map != null;
-        update_field(current_map,root, scene);
+        if(current_map_num>=4){
+            System.out.println("fuck you");
+            current_map = null;
+            root.getChildren().removeAll();
+            root.getChildren().clear();
+            root.getChildren().addAll(new HBox(new Text("fin")));
+        }else {
+            boxes_set = 0;
+            root.getChildren().removeAll();
+            current_map = loadHashMapFromFile("map" + current_map_num + ".dat");
+            player_pos.pos_x = Objects.requireNonNull(current_map).size() / 2;
+            player_pos.pos_y = Objects.requireNonNull(current_map).get(0).size() / 2;
+            assert current_map != null;
+            update_field(current_map, root, scene);
+        }
     }
 
     public static void saveHashMapToFile(HashMap<Integer, HashMap<Integer, displayed_object>> hashMap, String fileName) {
